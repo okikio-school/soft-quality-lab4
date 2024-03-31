@@ -4,29 +4,7 @@ pipeline {
   }
 
   agent {
-    kubernetes {
-      defaultContainer 'jnlp'
-      yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    component: ci
-spec:
-  serviceAccountName: cd-jenkins
-  containers:
-  - name: docker
-    image: docker:latest
-    command:
-    - cat
-    tty: true
-  - name: kubectl
-    image: bitnami/kubectl:latest
-    command:
-    - cat
-    tty: true
-"""
-    }
+    docker { image 'docker:latest' }
   }
   tools {
     maven 'maven' 
