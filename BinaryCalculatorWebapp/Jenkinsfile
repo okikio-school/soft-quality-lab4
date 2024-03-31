@@ -26,7 +26,10 @@ pipeline {
     }
     stage('Build and push image to Docker Hub') {
       agent {
-        docker { image 'docker:dind' }
+        docker { 
+          image 'bitnami/kubectl' 
+          args '-v /var/run/docker.sock:/var/run/docker.sock' // Bind mount Docker socket
+        }
       }
       environment {
         DOCKER_CREDS = credentials('docker-registry-credentials')
