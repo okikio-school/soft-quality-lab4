@@ -3,7 +3,12 @@ pipeline {
     DOCKER_IMAGE = 'okikioschool/binarycalculator-lab4:latest'
   }
 
-  agent any
+  agent {
+    docker { 
+      image 'bitnami/kubectl' 
+      args '-v /var/run/docker.sock:/var/run/docker.sock' // Bind mount Docker socket
+    }
+  }
   tools {
     maven 'maven' 
   }
@@ -25,12 +30,6 @@ pipeline {
       }
     }
     stage('Build and push image to Docker Hub') {
-      agent {
-        docker { 
-          image 'bitnami/kubectl' 
-          args '-v /var/run/docker.sock:/var/run/docker.sock' // Bind mount Docker socket
-        }
-      }
       environment {
         DOCKER_CREDS = credentials('docker-registry-credentials')
       }
