@@ -1,12 +1,50 @@
 pipeline {
   environment {
     DOCKER_IMAGE = 'okikioschool/binarycalculator-lab4:latest'
+    DOCKER_CREDENTIALS_ID = 'docker-registry-credentials' // ID of your Docker credentials in Jenkins
   }
 
   agent {
-    docker { 
-      image 'bitnami/kubectl' 
-      args '-v /var/run/docker.sock:/var/run/docker.sock' // Bind mount Docker socket
+    // Use your custom Jenkins agent image
+    kubernetes {
+      defaultContainer 'kaniko'
+      yaml '''
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - sleep
+    args:
+    - 99d
+    volumeMounts:
+      - name: docker-registry-config
+        mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-registry-config
+      configMap:
+        name: docker-registry-config
+'''
+//       yaml """
+// apiVersion: v1
+// kind: Pod
+// metadata:
+// labels:
+//   some-label: jenkins-agent
+// spec:
+// containers:
+// - name: jnlp
+//   image: your-custom-jenkins-agent-image
+//   volumeMounts:
+//   - name: docker-sock-volume
+//     mountPath: /var/run/docker.sock
+// volumes:
+// - name: docker-sock-volume
+//   hostPath:
+//     path: /var/run/docker.sock
+// """
     }
   }
   tools {
@@ -30,16 +68,61 @@ pipeline {
       }
     }
     stage('Build and push image to Docker Hub') {
-      environment {
-        DOCKER_CREDS = credentials('docker-registry-credentials')
-      }
+      // environment {
+      //   DOCKER_CREDS = credentials('docker-registry-credentials')
+      // }
+
       steps {
-        container('docker') {
-          script {
-            sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
-            sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
-            sh "docker push ${DOCKER_IMAGE}"
+        script {
+          withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+            // Generate Docker config JSON dynamically
+            sh """
+            mkdir -p /kaniko/.docker
+            echo '{"auths":{"https://index.docker.io/v1/":{"username":"${DOCKER_USER}","password":"${DOCKER_PASSWORD}"}}}' > /kaniko/.docker/config.json
+            """
+            // Now run Kaniko using the generated Docker config for authentication
+            podTemplate(containers: [
+              containerTemplate(
+                name: 'kaniko',
+                image: 'gcr.io/kaniko-project/executor:latest',
+                command: 'cat',
+                ttyEnabled: true,
+                volumeMounts: [
+                  volumeMount(mountPath: '/kaniko/.docker', name: 'docker-config')
+                ]
+              )],
+              volumes: [
+                hostPathVolume(hostPath: '/kaniko/.docker', name: 'docker-config')
+              ]
+            ) {
+              container('kaniko') {
+                sh """
+                /kaniko/executor --context ${WORKSPACE}/BinaryCalculatorWebapp/ \
+                                  --dockerfile ${WORKSPACE}/BinaryCalculatorWebapp/Dockerfile \
+                                  --destination ${DOCKER_IMAGE}
+                """
+              }
+            }
           }
+          // Define a pod template with Kaniko executor
+          podTemplate(containers: [
+            containerTemplate(name: 'kaniko', image: 'gcr.io/kaniko-project/executor:latest', command: 'cat', ttyEnabled: true)
+          ],
+          volumes: [
+            // Define necessary volumes, e.g., for Docker config for pushing to registry
+          ]) {
+            // Use Kaniko to build and push image
+            container('kaniko') {
+              sh """
+              /kaniko/executor --context ${WORKSPACE}/BinaryCalculatorWebapp/ \
+                                --dockerfile ${WORKSPACE}/BinaryCalculatorWebapp/Dockerfile \
+                                --destination ${DOCKER_IMAGE}
+              """
+            }
+          }
+          sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
+          sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
+          sh "docker push ${DOCKER_IMAGE}"
         }
       }
     }
