@@ -1,5 +1,34 @@
 pipeline {
-  agent any
+  environment {
+    DOCKER_IMAGE = 'okikioschool/binarycalculator-lab4:latest'
+  }
+
+  agent {
+    kubernetes {
+      label 'sample-app'
+      defaultContainer 'jnlp'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: ci
+spec:
+  serviceAccountName: cd-jenkins
+  containers:
+  - name: docker
+    image: docker:latest
+    command:
+    - cat
+    tty: true
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
   tools {
     maven 'maven' 
   }
@@ -18,6 +47,20 @@ pipeline {
     stage ('build') {
       steps {
         sh 'mvn package -DskipTests -f ./BinaryCalculatorWebapp/pom.xml'
+      }
+    }
+    stage('Build and push image to Docker Hub') {
+      environment {
+        DOCKER_CREDS = credentials('docker-registry-credentials')
+      }
+      steps {
+        container('docker') {
+          script {
+            sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
+            sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
+            sh "docker push ${DOCKER_IMAGE}"
+          }
+        }
       }
     }
     stage ('Deploy') {
