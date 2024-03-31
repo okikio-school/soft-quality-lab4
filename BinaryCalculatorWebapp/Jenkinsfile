@@ -105,24 +105,24 @@ pipeline {
           //   }
           // }
 
-          podTemplate(yaml: """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:latest
-    command:
-    - /busybox/cat
-    tty: true
-    volumeMounts:
-    - name: docker-config
-      mountPath: /kaniko/.docker/
-  volumes:
-  - name: docker-config
-    secret:
-      secretName: kaniko-secret
-""", name: 'kaniko') {
+//           podTemplate(yaml: """
+// apiVersion: v1
+// kind: Pod
+// spec:
+//   containers:
+//   - name: kaniko
+//     image: gcr.io/kaniko-project/executor:latest
+//     command:
+//     - /busybox/cat
+//     tty: true
+//     volumeMounts:
+//     - name: docker-config
+//       mountPath: /kaniko/.docker/
+//   volumes:
+//   - name: docker-config
+//     secret:
+//       secretName: kaniko-secret
+// """, name: 'kaniko') {
               container(name: 'kaniko', shell: '/busybox/sh') {
                 sh """
                 /kaniko/executor --context ${WORKSPACE}/BinaryCalculatorWebapp/ \
@@ -135,7 +135,7 @@ spec:
           // sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
           // sh "docker push ${DOCKER_IMAGE}"
         }
-      }
+      // }
     }
     stage ('Deploy') {
       steps {
