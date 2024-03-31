@@ -4,7 +4,7 @@ pipeline {
     DOCKER_CONFIG = "${WORKSPACE}/.docker" // Use a path within the Jenkins workspace
   }
 
-  agent any
+  agent { kubernetes {} }
 //   {
 //     // Use your custom Jenkins agent image
 //     kubernetes {
