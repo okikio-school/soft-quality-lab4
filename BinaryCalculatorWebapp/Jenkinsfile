@@ -1,7 +1,7 @@
 pipeline {
   environment {
     DOCKER_IMAGE = 'okikioschool/binarycalculator-lab4:latest'
-    DOCKER_CREDENTIALS_ID = 'docker-registry-credentials' // ID of your Docker credentials in Jenkins
+    DOCKER_CONFIG = "${WORKSPACE}/.docker" // Use a path within the Jenkins workspace
   }
 
   agent any
@@ -75,44 +75,27 @@ pipeline {
 
       steps {
         script {
-          withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-            // Generate Docker config JSON dynamically
-            sh """
-            mkdir -p /kaniko/.docker
-            echo '{"auths":{"https://index.docker.io/v1/":{"username":"${DOCKER_USER}","password":"${DOCKER_PASSWORD}"}}}' > /kaniko/.docker/config.json
-            """
-            // Now run Kaniko using the generated Docker config for authentication
-            podTemplate(containers: [
-              containerTemplate(
-                name: 'kaniko',
-                image: 'gcr.io/kaniko-project/executor:latest',
-                command: 'cat',
-                ttyEnabled: true,
-                volumeMounts: [
-                  volumeMount(mountPath: '/kaniko/.docker', name: 'docker-config')
-                ]
-              )],
-              volumes: [
-                hostPathVolume(hostPath: '/kaniko/.docker', name: 'docker-config')
-              ]
-            ) {
-              container('kaniko') {
-                sh """
-                /kaniko/executor --context ${WORKSPACE}/BinaryCalculatorWebapp/ \
-                                  --dockerfile ${WORKSPACE}/BinaryCalculatorWebapp/Dockerfile \
-                                  --destination ${DOCKER_IMAGE}
-                """
-              }
-            }
+          
+          withCredentials([usernamePassword(credentialsId: 'docker-registry-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+            // Use workspace directory to avoid read-only file system issue
+            sh "mkdir -p ${DOCKER_CONFIG}"
+            sh "echo '{\"auths\":{\"https://index.docker.io/v1/\":{\"username\":\"${DOCKER_USER}\",\"password\":\"${DOCKER_PASSWORD}\"}}}' > ${DOCKER_CONFIG}/config.json"
           }
-          // Define a pod template with Kaniko executor
+          // Define the pod template for Kaniko, mounting the workspace directory
           podTemplate(containers: [
-            containerTemplate(name: 'kaniko', image: 'gcr.io/kaniko-project/executor:latest', command: 'cat', ttyEnabled: true)
-          ],
-          volumes: [
-            // Define necessary volumes, e.g., for Docker config for pushing to registry
-          ]) {
-            // Use Kaniko to build and push image
+            containerTemplate(
+              name: 'kaniko',
+              image: 'gcr.io/kaniko-project/executor:latest',
+              command: 'cat',
+              ttyEnabled: true,
+              volumeMounts: [
+                volumeMount(mountPath: '/kaniko/.docker', name: 'docker-config')
+              ]
+            )],
+            volumes: [
+              hostPathVolume(hostPath: "${DOCKER_CONFIG}", name: 'docker-config')
+            ]
+          ) {
             container('kaniko') {
               sh """
               /kaniko/executor --context ${WORKSPACE}/BinaryCalculatorWebapp/ \
@@ -121,9 +104,9 @@ pipeline {
               """
             }
           }
-          sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
-          sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
-          sh "docker push ${DOCKER_IMAGE}"
+          // sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
+          // sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
+          // sh "docker push ${DOCKER_IMAGE}"
         }
       }
     }
