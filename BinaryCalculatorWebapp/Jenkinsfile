@@ -4,49 +4,50 @@ pipeline {
     DOCKER_CREDENTIALS_ID = 'docker-registry-credentials' // ID of your Docker credentials in Jenkins
   }
 
-  agent {
-    // Use your custom Jenkins agent image
-    kubernetes {
-      defaultContainer 'kaniko'
-      yaml '''
-kind: Pod
-spec:
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    imagePullPolicy: Always
-    command:
-    - sleep
-    args:
-    - 99d
-    volumeMounts:
-      - name: docker-registry-config
-        mountPath: /kaniko/.docker
-  volumes:
-    - name: docker-registry-config
-      configMap:
-        name: docker-registry-config
-'''
-//       yaml """
-// apiVersion: v1
+  agent any
+//   {
+//     // Use your custom Jenkins agent image
+//     kubernetes {
+//       defaultContainer 'kaniko'
+//       yaml '''
 // kind: Pod
-// metadata:
-// labels:
-//   some-label: jenkins-agent
 // spec:
-// containers:
-// - name: jnlp
-//   image: your-custom-jenkins-agent-image
-//   volumeMounts:
-//   - name: docker-sock-volume
-//     mountPath: /var/run/docker.sock
-// volumes:
-// - name: docker-sock-volume
-//   hostPath:
-//     path: /var/run/docker.sock
-// """
-    }
-  }
+//   containers:
+//   - name: kaniko
+//     image: gcr.io/kaniko-project/executor:debug
+//     imagePullPolicy: Always
+//     command:
+//     - sleep
+//     args:
+//     - 99d
+//     volumeMounts:
+//       - name: docker-registry-config
+//         mountPath: /kaniko/.docker
+//   volumes:
+//     - name: docker-registry-config
+//       configMap:
+//         name: docker-registry-config
+// '''
+// //       yaml """
+// // apiVersion: v1
+// // kind: Pod
+// // metadata:
+// // labels:
+// //   some-label: jenkins-agent
+// // spec:
+// // containers:
+// // - name: jnlp
+// //   image: your-custom-jenkins-agent-image
+// //   volumeMounts:
+// //   - name: docker-sock-volume
+// //     mountPath: /var/run/docker.sock
+// // volumes:
+// // - name: docker-sock-volume
+// //   hostPath:
+// //     path: /var/run/docker.sock
+// // """
+//     }
+//   }
   tools {
     maven 'maven' 
   }
