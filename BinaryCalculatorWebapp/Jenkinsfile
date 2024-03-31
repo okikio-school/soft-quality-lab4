@@ -3,9 +3,7 @@ pipeline {
     DOCKER_IMAGE = 'okikioschool/binarycalculator-lab4:latest'
   }
 
-  agent {
-    docker { image 'docker:dind' }
-  }
+  agent any
   tools {
     maven 'maven' 
   }
@@ -27,6 +25,9 @@ pipeline {
       }
     }
     stage('Build and push image to Docker Hub') {
+      agent {
+        docker { image 'docker:dind' }
+      }
       environment {
         DOCKER_CREDS = credentials('docker-registry-credentials')
       }
