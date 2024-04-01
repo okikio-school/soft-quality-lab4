@@ -26,9 +26,9 @@ pipeline {
         sh 'mvn package -DskipTests -f ./BinaryCalculatorWebapp/pom.xml'
       }
     }
-    stage('Build and push image to Docker Hub') {
-      steps {
-        script {
+    // stage('Build and push image to Docker Hub') {
+    //   steps {
+    //     script {
           
           // withCredentials([usernamePassword(credentialsId: 'docker-registry-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
           //   // Use workspace directory to avoid read-only file system issue
@@ -88,9 +88,9 @@ pipeline {
           // sh "docker login -u $DOCKER_CREDS_USR -p $DOCKER_CREDS_PSW"
           // sh "docker build -t ${DOCKER_IMAGE} ./BinaryCalculatorWebapp/"
           // sh "docker push ${DOCKER_IMAGE}"
-        }
-      }
-    }
+    //     }
+    //   }
+    // }
     stage ('Deploy') {
       steps {
         sh 'echo "bye bye"'
