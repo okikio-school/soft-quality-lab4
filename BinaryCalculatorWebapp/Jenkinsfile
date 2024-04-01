@@ -4,51 +4,8 @@ pipeline {
     DOCKER_CONFIG = "${WORKSPACE}/.docker" // Use a path within the Jenkins workspace
   }
 
-  agent { kubernetes {} }
-//   {
-//     // Use your custom Jenkins agent image
-//     kubernetes {
-//       defaultContainer 'kaniko'
-//       yaml '''
-// kind: Pod
-// spec:
-//   containers:
-//   - name: kaniko
-//     image: gcr.io/kaniko-project/executor:debug
-//     imagePullPolicy: Always
-//     command:
-//     - sleep
-//     args:
-//     - 99d
-//     volumeMounts:
-//       - name: docker-registry-config
-//         mountPath: /kaniko/.docker
-//   volumes:
-//     - name: docker-registry-config
-//       configMap:
-//         name: docker-registry-config
-// '''
-// //       yaml """
-// // apiVersion: v1
-// // kind: Pod
-// // metadata:
-// // labels:
-// //   some-label: jenkins-agent
-// // spec:
-// // containers:
-// // - name: jnlp
-// //   image: your-custom-jenkins-agent-image
-// //   volumeMounts:
-// //   - name: docker-sock-volume
-// //     mountPath: /var/run/docker.sock
-// // volumes:
-// // - name: docker-sock-volume
-// //   hostPath:
-// //     path: /var/run/docker.sock
-// // """
-//     }
-//   }
-
+  // agent { kubernetes {} }
+  agent any
   tools {
     maven 'maven' 
   }
@@ -70,10 +27,6 @@ pipeline {
       }
     }
     stage('Build and push image to Docker Hub') {
-      // environment {
-      //   DOCKER_CREDS = credentials('docker-registry-credentials')
-      // }
-
       steps {
         script {
           
